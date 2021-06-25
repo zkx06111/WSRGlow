@@ -12,6 +12,22 @@ See `hparams.py` for more details.
 
 Before training, you need to binarize the data first. The raw wav files should be put in the `hparams['raw_data_path']`. The binarized data would be put in the `hparams['binary_data_path']`.
 
+Specifically, for the VCTK corpus, the file structure should be like
+
+```
+.
+|--data
+    |--raw
+        |--VCTK-Corpus
+            |--wav48
+                |--$WAVS
+|--checkpoints
+    |--wsrglow
+    
+```
+
+where the model checkpoints are in `checkpoints/wsrglow`.
+
 The command to binarize is
 
 `python binarizer.py --config config.yaml`
