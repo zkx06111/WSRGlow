@@ -9,8 +9,6 @@ from hparams import hparams, set_hparams
 import numpy as np
 import pyloudnorm as pyln
 from model import WaveGlowMelHF
-#from modules.waveglow.waveglow_mel_hf_4 import WaveGlowMelHF
-import librosa
 from utils import load_ckpt
 
 def run(model, wav, sigma=1.0):
@@ -75,9 +73,7 @@ if __name__ == '__main__':
     #pdb.set_trace()
 
     load_ckpt(model, 'checkpoints/DIDI_GLOWSR4/model_ckpt_best.pt')
-    #torch.save(model.state_dict(), 'wsrglow_4_statedict.ckpt')
     model.eval()
-    #pdb.set_trace()
 
     fns = ['12k_db_001_000.wav',
            '12k_db_001_001.wav',

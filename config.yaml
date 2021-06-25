@@ -1,4 +1,3 @@
-exp_name: wsrglow
 accumulate_grad_batches: 1
 audio_num_mel_bins: 80
 audio_sample_rate: 48000

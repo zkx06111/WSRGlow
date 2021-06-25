@@ -42,4 +42,5 @@ Run `python train.py --config config.yaml` on a GPU.
 
 ### To infer
 
+Change the code in `infer.py` to specify the checkpoint you want to load and the sample inputs you want to use for inference.
 Run `python infer.py --config config.yaml` on a GPU, modify the code for the correct path of checkpoints and wav files.
