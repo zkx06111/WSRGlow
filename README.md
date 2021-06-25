@@ -2,6 +2,10 @@
 
 The official implementation of the Interspeech 2021 paper *WSRGlow: A Glow-based Waveform Generative Model for Audio Super-Resolution*. Audio samples can be found [here](https://zkx06111.github.io/wsrglow/).
 
+Feel free to create issues or send an email to [kexunz@zju.edu.cn](mailto:kexunz@zju.edu.cn) if you have problems running the code.
+
+Before running the code, you need to install the dependicies by `pip install -r requirements.txt`.
+
 The configs for model architecture and training scheme is saved in `config.yaml`. You can overwrite some of the attributes by adding the `--hparams` flag when running a command. The general way to run a python script is
 
 `python $SRC$ --config $CONFIG$ --hparams $KEY1$=$VALUE1$,$KEY2$=$VALUE2$,...`
