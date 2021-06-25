@@ -9,6 +9,7 @@ import numpy as np
 import librosa
 import traceback
 import pandas as pd
+import dataset_utils
 
 
 
@@ -75,7 +76,7 @@ class DapsSRBinarizer:
         self.data_dir = hparams['raw_data_dir']
         self.binarization_args = hparams['binarization_args']
 
-        self.wavfns = sorted(glob.glob(f'{self.data_dir}/*.wav'))
+        self.wavfns = sorted(glob.glob(f'{self.data_dir}/wav48/*/*.wav'))
         self.item2wavfn = {}
         for id, wavfn in enumerate(self.wavfns):
             self.item2wavfn[id] = wavfn
@@ -151,7 +152,7 @@ class DapsSRBinarizer:
 
     @classmethod
     def process_item(cls, item_name, wav_fn, binarization_args):
-        wav, mel = VOCODERS[hparams['vocoder']].wav2spec(wav_fn)
+        wav, mel = dataset_utils.wav2spec(wav_fn)
         res = {
             'item_name': item_name,
             'wav': wav,

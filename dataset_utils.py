@@ -1,5 +1,4 @@
 from hparams import hparams
-from binarizer import IndexedDataset
 import numpy as np
 import torch
 import utils
@@ -8,14 +7,12 @@ import librosa
 import os
 import importlib
 import audio
-import pyln
 from skimage.transform import resize
 import struct
 import webrtcvad
 from scipy.ndimage.morphology import binary_dilation
 import librosa
 import numpy as np
-from utils import audio
 import pyloudnorm as pyln
 import re
 import json
@@ -164,6 +161,40 @@ def wav2spec(wav_fn, return_linear=False):
     else:
         return res[0], res[1].T
 
+
+class IndexedDataset:
+    def __init__(self, path, num_cache=1):
+        super().__init__()
+        self.path = path
+        self.data_file = None
+        self.data_offsets = np.load(f"{path}.idx", allow_pickle=True).item()['offsets']
+        self.data_file = open(f"{path}.data", 'rb', buffering=-1)
+        self.cache = []
+        self.num_cache = num_cache
+
+    def check_index(self, i):
+        if i < 0 or i >= len(self.data_offsets) - 1:
+            raise IndexError('index out of range')
+
+    def __del__(self):
+        if self.data_file:
+            self.data_file.close()
+
+    def __getitem__(self, i):
+        self.check_index(i)
+        if self.num_cache > 0:
+            for c in self.cache:
+                if c[0] == i:
+                    return c[1]
+        self.data_file.seek(self.data_offsets[i])
+        b = self.data_file.read(self.data_offsets[i + 1] - self.data_offsets[i])
+        item = pickle.loads(b)
+        if self.num_cache > 0:
+            self.cache = [(i, deepcopy(item))] + self.cache[:-1]
+        return item
+
+    def __len__(self):
+        return len(self.data_offsets) - 1
 
 class BaseDataset(torch.utils.data.Dataset):
     def __init__(self, shuffle):
