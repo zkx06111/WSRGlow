@@ -14,8 +14,8 @@ import random
 import torch.nn as nn
 from training_utils import BaseTrainer, LatestModelCheckpoint
 import subprocess
-import datetime
-from pytorch_lightning.logging import TensorBoardLogger
+from datetime import datetime
+from pytorch_lightning.loggers import TensorBoardLogger
 
 import os
 
@@ -54,6 +54,12 @@ class WaveGlowTask4(nn.Module):
         self.training_losses_meter = None
         self.dataset_cls = SRDataset
         self.criterion = WaveGlowLoss()
+
+    def on_sanity_check_start(self):
+        pass
+
+    def on_train_start(self):
+        pass
 
     @data_loader
     def train_dataloader(self):
@@ -251,7 +257,7 @@ class WaveGlowTask4(nn.Module):
     ###########
     @classmethod
     def start(cls):
-        hparams.setset_hparams()
+        set_hparams()
         os.environ['MASTER_PORT'] = str(random.randint(15000, 30000))
         random.seed(hparams['seed'])
         np.random.seed(hparams['seed'])

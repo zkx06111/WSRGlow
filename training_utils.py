@@ -8,7 +8,7 @@ import logging
 import numpy as np
 import copy
 from pytorch_lightning.callbacks import GradientAccumulationScheduler
-from pytorch_lightning.callbacks.pt_callbacks import ModelCheckpoint
+from pytorch_lightning.callbacks import ModelCheckpoint
 import glob
 import subprocess
 
@@ -29,28 +29,28 @@ class LatestModelCheckpoint(ModelCheckpoint):
         self.prefix = prefix
         self.best_k_models = {}
         # {filename: monitor}
-        self.kth_best_model = ''
+        #self.kth_best_model = ''
         self.save_top_k = 1
         self.task = None
         if mode == 'min':
             self.monitor_op = np.less
-            self.best = np.Inf
+            self.best_model_score = np.Inf
             self.mode = 'min'
         elif mode == 'max':
             self.monitor_op = np.greater
-            self.best = -np.Inf
+            self.best_model_score = -np.Inf
             self.mode = 'max'
         else:
             if 'acc' in self.monitor or self.monitor.startswith('fmeasure'):
                 self.monitor_op = np.greater
-                self.best = -np.Inf
+                self.best_model_score = -np.Inf
                 self.mode = 'max'
             else:
                 self.monitor_op = np.less
-                self.best = np.Inf
+                self.best_model_score = np.Inf
                 self.mode = 'min'
         if os.path.exists(f'{self.filepath}/best_valid.npy'):
-            self.best = np.load(f'{self.filepath}/best_valid.npy')[0]
+            self.best_model_score = np.load(f'{self.filepath}/best_valid.npy')[0]
 
     def get_all_ckpts(self):
         return sorted(glob.glob(f'{self.filepath}/{self.prefix}_ckpt_steps_*.ckpt'),
@@ -74,7 +74,7 @@ class LatestModelCheckpoint(ModelCheckpoint):
             current = logs.get(self.monitor)
             if current is not None and self.save_best:
                 if self.monitor_op(current, self.best):
-                    self.best = current
+                    self.best_model_score = current
                     if self.verbose > 0:
                         logging.info(
                             f'Epoch {epoch:05d}@{self.task.global_step}: {self.monitor} reached'

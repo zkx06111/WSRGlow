@@ -277,7 +277,7 @@ class WaveGlowMelHF(torch.nn.Module):
         #print(f'phaseemb.shape = {phaseemb.shape}')
 
         #  use mu-law embedding to depict low res audio
-        pdb.set_trace()
+        #pdb.set_trace()
         lr = self.muembed(lr).permute(0, 2, 1)  # (B, H, T / 2)
 
         #print(f'lr_shape after muembed = {lr.shape}')
