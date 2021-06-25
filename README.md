@@ -1,6 +1,6 @@
 # WSRGlow
 
-The official implementation of the Interspeech 2021 paper *WSRGlow: A Glow-based Waveform Generative Model for Audio Super-Resolution*. Audio samples can be found [here](https://zkx06111.github.io/wsrglow/).
+The official implementation of the Interspeech 2021 paper [*WSRGlow: A Glow-based Waveform Generative Model for Audio Super-Resolution*](https://arxiv.org/abs/2106.08507). Audio samples can be found [here](https://zkx06111.github.io/wsrglow/).
 
 Feel free to create issues or send an email to [kexunz@zju.edu.cn](mailto:kexunz@zju.edu.cn) if you have problems running the code.
 
