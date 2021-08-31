@@ -29,7 +29,7 @@ def librosa_pad_lr(x, fsize, fshift, pad_sides=1):
         return pad // 2, pad // 2 + pad % 2
 
 def load_wav(wav_fn):
-    wav, sr = librosa.core.load(wav_fn, sr=hparams['sampling_rate'] // 4)
+    wav, sr = librosa.core.load(wav_fn, sr=hparams['sampling_rate'] // 2)
     print(wav.shape, sr, hparams['sampling_rate'])
 
     if hparams['loud_norm']:
@@ -72,22 +72,21 @@ if __name__ == '__main__':
 
     #pdb.set_trace()
 
-    load_ckpt(model, 'checkpoints/DIDI_GLOWSR4/model_ckpt_best.pt')
+    load_ckpt(model, 'checkpoints/glowmultin/model_ckpt_best.pt')
     model.eval()
 
-    fns = ['12k_db_001_000.wav',
-           '12k_db_001_001.wav',
-           '12k_db_001_002.wav',
-           '12k_db_001_003.wav',
-           '12k_db_001_004.wav']
+    fns = ['p225_001_lr.wav']
+    print(load_wav('1_pred_p225_001_lr.wav')[1])
     sigma = 1
     for lr_fn in fns:
-        lr, sr = load_wav('inference_code/data/' + lr_fn)
+        lr, sr = load_wav(lr_fn)
+        print(f'sampling rate (lr) = {sr}')
         print(f'lr.shape = {lr.shape}', flush=True)
         with torch.no_grad():
             pred = run(model, lr, sigma=sigma)
         print(lr.shape, pred.shape)
-        pred_fn = f'inference_code/data/{sigma}_pred_{lr_fn}'
-        sf.write(open(pred_fn, 'wb'), pred, sr * 4)
+        pred_fn = f'{sigma}_pred_{lr_fn}'
+        print(f'sampling rate = {sr * 2}')
+        sf.write(open(pred_fn, 'wb'), pred, sr * 2)
 
 

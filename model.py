@@ -123,7 +123,7 @@ class WN(torch.nn.Module):
         end.weight.data.zero_()
         end.bias.data.zero_()
         self.end = end
-
+        #print(f'n_channels = {n_channels}, n_channels = {n_layers}')
         cond_layer = torch.nn.Conv1d(
             n_mel_channels, 2 * n_channels * n_layers, 1)
         self.cond_layer = torch.nn.utils.weight_norm(cond_layer, name='weight')
@@ -248,8 +248,7 @@ class WaveGlowMelHF(torch.nn.Module):
                 n_half = n_half - int(self.n_early_size / 2)
                 n_remaining_channels = n_remaining_channels - self.n_early_size
             self.convinv.append(Invertible1x1Conv(n_remaining_channels))
-            self.WN.append(WN(n_half, embed_dim * n_group // 2 + 50 *
-                              (n_group // 2 + 1) + n_group // 2 + 1, **WN_config))  # ??
+            self.WN.append(WN(n_half, embed_dim * n_group + 50 * (n_group + 1) + n_group + 1, **WN_config))  # ??
         self.n_remaining_channels = n_remaining_channels  # Useful during inference
 
     def forward(self, lr, hr):
@@ -258,35 +257,29 @@ class WaveGlowMelHF(torch.nn.Module):
         """
         #print(lr.shape)
         T = lr.shape[1]
-        lr = lr.cuda()
-        #pdb.set_trace()
+        lr = lr
+
         n_group = self.n_group
 
-        Ds = [librosa.stft(x, n_fft=n_group, hop_length=n_group // 2)
-              for x in lr.cpu().numpy()]
-        # (B, n_group // 2 + 1, T / 2 / n_group)
-        spect = torch.Tensor([np.abs(d) for d in Ds]).cuda()
-        # (B, n_group // 2 + 1, T / 2 / n_group)
-        phase = torch.Tensor([np.angle(d) for d in Ds]).cuda()
-        # (B, n_group // 2 + 1, T / 2 / n_group, H)
-        phaseemb = self.phase_embedding(phase.permute(0, 2, 1))
+        Ds = [librosa.stft(x, n_fft=n_group * 2, hop_length=n_group) for x in lr.cpu().numpy()]
+        spect = torch.Tensor([np.abs(d) for d in Ds]).cuda()  # (B, n_group + 1, T / 2 / n_group)
+        phase = torch.Tensor([np.angle(d) for d in Ds]).cuda()  # (B, n_group + 1, T / 2 / n_group)
+        phaseemb = self.phase_embedding(phase.permute(0, 2, 1))  # (B, n_group + 1, T / 2 / n_group, H)
         #print(f'spect.shape = {spect.shape}')
-        phaseemb = phaseemb.reshape(
-            phaseemb.shape[0], phaseemb.shape[1], -1).permute(0, 2, 1)
-        # (B, (n_group // 2 + 1) * H, T / 2 / n_group)
+        phaseemb = phaseemb.reshape(phaseemb.shape[0], phaseemb.shape[1], -1).permute(0, 2, 1)
+        # (B, (n_group + 1) * H, T / 2 / n_group)
         #print(f'phaseemb.shape = {phaseemb.shape}')
 
         #  use mu-law embedding to depict low res audio
-        #pdb.set_trace()
         lr = self.muembed(lr).permute(0, 2, 1)  # (B, H, T / 2)
 
+
         #print(f'lr_shape after muembed = {lr.shape}')
-        lr = lr.unfold(2, self.n_group // 2, self.n_group //
-                       2).permute(0, 2, 1, 3)
-        # (B, T / 2 / n_group, H, n_group // 2)
+        lr = lr.unfold(2, self.n_group, self.n_group).permute(0, 2, 1, 3)
+        # (B, T / 2 / n_group, H, n_group)
         lr = lr.contiguous().view(lr.size(0), lr.size(1), -1).permute(0, 2, 1)
         #print(f'lr.shape = {lr.shape}', lr.shape, flush=True)
-        # (B, H x n_group // 2, T / 2 / n_group)
+        # (B, H x n_group, T / 2 / n_group)
 
         min_dim2 = min([lr.shape[2], spect.shape[2], phaseemb.shape[2]])
         lr = lr[:, :, :min_dim2]
@@ -300,8 +293,7 @@ class WaveGlowMelHF(torch.nn.Module):
         #print(f'lr.shape = {lr.shape}', flush=True)
 
         audio = hr.reshape(hr.shape[0], -1)  # (B, T)
-        audio = audio.unfold(1, self.n_group * 2,
-                             self.n_group * 2).permute(0, 2, 1)
+        audio = audio.unfold(1, self.n_group * 2, self.n_group * 2).permute(0, 2, 1)
         #print(f'lr.shape = {lr.shape}, audio.shape = {audio.shape}', flush=True)
         #print(self.n_group, audio.shape, flush=True)
         # batch x (n_group * 2) x (time / n_group / 2)
@@ -338,41 +330,20 @@ class WaveGlowMelHF(torch.nn.Module):
         return torch.cat(output_audio, 1), log_s_list, log_det_W_list
 
     def infer(self, lr, sigma=1.0):
-        print(f'lr.shape = {lr.shape}', flush=True)
-        print(f'lr.type = {lr.type()}', flush=True)
-        #print(torch.cuda.memory_summary('cuda:0'))
         n_group = self.n_group
-
-        Ds = [librosa.stft(x, n_fft=n_group, hop_length=n_group // 2)
-              for x in lr.cpu().numpy()]
-        # (B, n_group // 2 + 1, T / 2 / n_group)
-        spect = torch.Tensor([np.abs(d) for d in Ds]).cuda()
-        # (B, n_group // 2 + 1, T / 2 / n_group)
-        phase = torch.Tensor([np.angle(d) for d in Ds]).cuda()
-        # (B, n_group // 2 + 1, T / 2 / n_group, H)
-        phaseemb = self.phase_embedding(phase.permute(0, 2, 1))
-        # print(f'spect.shape = {spect.shape}')
-        phaseemb = phaseemb.reshape(
-            phaseemb.shape[0], phaseemb.shape[1], -1).permute(0, 2, 1)
-        # (B, (n_group // 2 + 1) * H, T / 2 / n_group)
-        # print(f'phaseemb.shape = {phaseemb.shape}')
-
-        #  use mu-law embedding to depict low res audio
+        Ds = [librosa.stft(x, n_fft=n_group * 2, hop_length=n_group) for x in lr.cpu().numpy()]
+        spect = torch.Tensor([np.abs(d) for d in Ds]).cuda()  # (B, n_group + 1, T / 2 / n_group)
+        phase = torch.Tensor([np.angle(d) for d in Ds]).cuda()  # (B, n_group + 1, T / 2 / n_group)
+        phaseemb = self.phase_embedding(phase.permute(0, 2, 1))  # (B, n_group + 1, T / 2 / n_group, H)
+        phaseemb = phaseemb.reshape(phaseemb.shape[0], phaseemb.shape[1], -1).permute(0, 2, 1)
         lr = self.muembed(lr).permute(0, 2, 1)  # (B, H, T / 2)
-
-        # print(f'lr_shape after muembed = {lr.shape}')
-        lr = lr.unfold(2, self.n_group // 2, self.n_group //
-                       2).permute(0, 2, 1, 3)
-        # (B, T / 2 / n_group, H, n_group // 2)
+        lr = lr.unfold(2, self.n_group, self.n_group).permute(0, 2, 1, 3)
         lr = lr.contiguous().view(lr.size(0), lr.size(1), -1).permute(0, 2, 1)
-        # print(f'lr.shape = {lr.shape}', lr.shape, flush=True)
-        # (B, H x n_group // 2, T / 2 / n_group)
 
         min_dim2 = min([lr.shape[2], spect.shape[2], phaseemb.shape[2]])
         lr = lr[:, :, :min_dim2]
         spect = spect[:, :, :min_dim2]
         phaseemb = phaseemb[:, :, :min_dim2]
-
         lr = torch.cat((lr, spect, phaseemb), dim=1)
 
         if lr.type() == 'torch.cuda.HalfTensor':
@@ -389,8 +360,6 @@ class WaveGlowMelHF(torch.nn.Module):
         audio = torch.autograd.Variable(sigma * audio)
 
         for k in reversed(range(self.n_flows)):
-            #print(f'k = {k}', flush=True)
-            #print(torch.cuda.memory_summary(device='cuda:0', abbreviated=True))
             n_half = int(audio.size(1) / 2)
             audio_0 = audio[:, :n_half, :]
             audio_1 = audio[:, n_half:, :]
@@ -400,20 +369,15 @@ class WaveGlowMelHF(torch.nn.Module):
             s = output[:, n_half:, :]
             b = output[:, :n_half, :]
             audio_1 = (audio_1 - b) / torch.exp(s)
-            del s
-            del b
-            del output
             audio = torch.cat([audio_0, audio_1], 1)
 
             audio = self.convinv[k](audio, reverse=True)
 
             if k % self.n_early_every == 0 and k > 0:
                 if lr.type() == 'torch.cuda.HalfTensor':
-                    z = torch.cuda.HalfTensor(
-                        lr.size(0), self.n_early_size, lr.size(2)).normal_()
+                    z = torch.cuda.HalfTensor(lr.size(0), self.n_early_size, lr.size(2)).normal_()
                 else:
-                    z = torch.cuda.FloatTensor(
-                        lr.size(0), self.n_early_size, lr.size(2)).normal_()
+                    z = torch.cuda.FloatTensor(lr.size(0), self.n_early_size, lr.size(2)).normal_()
                 audio = torch.cat((sigma * z, audio), 1)
 
         audio = audio.permute(0, 2, 1).contiguous().view(audio.size(0), -1)

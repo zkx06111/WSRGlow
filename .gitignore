@@ -1,1 +1,9 @@
 .idea
+checkpoints
+trained_for_2times
+venv
+__pycache__
+*.pt
+*.wav
+*.ckpt
+*
