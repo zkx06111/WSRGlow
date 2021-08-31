@@ -49,9 +49,9 @@ Run `python train.py --config config.yaml` on a GPU.
 Change the code in `infer.py` to specify the checkpoint you want to load and the sample inputs you want to use for inference.
 Run `python infer.py --config config.yaml` on a GPU, modify the code for the correct path of checkpoints and wav files.
 
-### Codelab Sample
+### Colab Sample
 
-You can experiment with the codelab sample and trained checkpoint [here](https://colab.research.google.com/drive/1uJ9bcUdK3VUwWYt0aU1C1mXAXp6JzCLh?usp=sharing).
+You can experiment with the colab sample and trained checkpoint [here](https://colab.research.google.com/drive/1uJ9bcUdK3VUwWYt0aU1C1mXAXp6JzCLh?usp=sharing).
 
 Note that the released checkpoint is trained for 2x super-resolution. You should select the GPU runtime to run the sample.
 
